@@ -1,8 +1,31 @@
-% Second-kind integral equation on the unit sphere, Laplace double-layer.
+function ie_sphere(n,nquad,occ,p,rank_or_tol,store,method)
+% IE_SPHERE  An example usage of strong skeletonization, solving a
+%  second-kind integral equation (Laplace double-layer potential) on the 
+%  unit sphere.  Sane defaults are provided for all parameters.
+%
+%  IE_SPHERE(N,NQUAD,OCC,P,RANK_OR_TOL,SKIP,METHOD) runs the example on a 
+%  sphere discretized using N points (see code), where the near-field 
+%  entries of the discretization are corrected with a Gauss-Legendre 
+%  quadrature using NQUAD points in each direction and the other parameters
+%  are defined as follows:
+%  - OCC:         The occupancy parameter, specifying the maximum number of 
+%                 points a node in the octree can contain before it is
+%                 subdivided.  This therefore gives an upper bound on the 
+%                 number of points in a leaf node.
+%  - P:           The number of proxy points to use to discretize the proxy 
+%                 sphere used during skeletonization.
+%  - RANK_OR_TOL: If a natural number, the maximum number of skeletons to
+%                 select during a single box of skeletonization.  If a
+%                 float between 0 and 1, an approximate relative tolerance
+%                 used to automatically select the number of skeletons.
+%  - STORE:       Which interactions to store in the fast multipole method 
+%                 used to apply the forward operator.  See the IFMM method
+%                 in the FLAM library.
+%  - METHOD:      The type of strong skeletonization to use.  Options are
+%                 'srskelf' (standard) or 'srskelf_hybrid' (alternating 
+%                 strong and weak skeletonization).
 
-function ie_sphere_s(n,nquad,occ,p,rank_or_tol,store,method)
-rng(0);
-  % set default parameters
+  % Set sane default parameters
   if nargin < 1 || isempty(n)
     n = 20480;
   end
@@ -26,7 +49,8 @@ rng(0);
   end
 
 
-  % initialize
+  % Initialize the discretization points on the sphere and the proxy 
+  % sphere.  We use random points on the proxy sphere for simplicity.
   ifmmtol = rank_or_tol/1e3;
   [V,F] = trisphere_subdiv(n);
   [x,nu,area] = tri3geom(V,F);
@@ -34,13 +58,13 @@ rng(0);
   proxy = randn(3,p);
   proxy = 1.5*bsxfun(@rdivide,proxy,sqrt(sum(proxy.^2)));
 
-  % compute quadrature corrections
+  % Compute the quadrature corrections
   tic
   if nquad > 0
-    % generate reference transformations for each triangle
+    % Generate reference transformations for each triangle
     [trans,rot,V2,V3] = tri3transrot(V,F);
 
-    % initialize quadrature on the unit square
+    % Initialize quadrature on the unit square
     [xq,wq] = glegquad(nquad,0,1);
     [xq,yq] = meshgrid(xq);
     wq = wq*wq';
@@ -48,7 +72,7 @@ rng(0);
     yq = yq(:);
     wq = wq(:);
 
-    % find neighbors of each triangle
+    % Find neighbors of each triangle
     nlvl = 0;
     l = 2;
     h = sqrt(8*pi/N);
@@ -59,7 +83,7 @@ rng(0);
     nlvl = max(1,nlvl);
     T = hypoct(x,0,nlvl);
 
-    % initialize storage
+    % Initialize storage
     nz = 0;
     for i = T.lvp(nlvl)+1:T.lvp(nlvl+1)
       node = T.nodes(i);
@@ -71,7 +95,7 @@ rng(0);
     J = zeros(nz,1);
     S = zeros(nz,1);
 
-    % compute near-field quadratures
+    % Compute near-field quadratures
     nz = 0;
     for i = T.lvp(nlvl)+1:T.lvp(nlvl+1)
       node = T.nodes(i);
@@ -103,31 +127,32 @@ rng(0);
   fprintf('quad: %10.4e (s) / %6.2f (MB)\n',t,w.bytes/1e6)
   clear V F trans rot V2 V3 T I J
 
-  % factor matrix using SRSKELF
+  % Factor the matrix using skeletonization (verbose mode)
   opts = struct('verb',1,'symm','n');
   if strcmp(method,'srskelf')
-        F = srskelf_asym(@Afun,x,occ,rank_or_tol,@pxyfun,opts);
+      F = srskelf_asym(@Afun,x,occ,rank_or_tol,@pxyfun,opts);
   elseif strcmp(method,'srskelf_hybrid')
       F = srskelf_asymhybrid(@Afun,x,occ,rank_or_tol,@pxyfun,opts);
   else
-       error('No valid method specified for factorization!');
+     error('No valid method specified for factorization!');
   end
   w = whos('F');
   fprintf([repmat('-',1,80) '\n'])
   fprintf('mem: %6.4f (GB)\n',w.bytes/1048576/1024)
 
-  % compress matrix using IFMM
+  % Compress the matrix using interpolative FMM for forward-operator apply
   opts = struct('store',store,'verb',1);
   G = ifmm(@Afun,x,x,1024,ifmmtol,@pxyfun_ifmm,opts);
   w = whos('G');
   fprintf([repmat('-',1,80) '\n'])
   fprintf('mem: %6.4f (GB)\n',w.bytes/1048576/1024)
 
-  % test accuracy using randomized power method
+  % Test accuracy of forward and inverse operator using randomized power
+  % method
   X = rand(N,1);
   X = X/norm(X);
 
-  % NORM(A - F)/NORM(A)
+  % For the forward operator, we approximate NORM(A - F)/NORM(A)
   tic 
   ntrials = 5;
   for i=1:ntrials
@@ -142,7 +167,8 @@ rng(0);
   e = e/snorm(N,@(x)(ifmm_mv(G,x,@Afun,'n')),@(x)(ifmm_mv(G,x,@Afun,'c')));
   fprintf('mv: %10.4e / %4d / %10.4e (s) / %10.4e (s)\n',e,niter,t1,t2)
 
-  % NORM(INV(A) - INV(F))/NORM(INV(A)) <= NORM(I - A*INV(F))
+  % For the inverse operator, we approximate the upper bound 
+  % NORM(I - A*INV(F)) >= NORM(INV(A) - INV(F))/NORM(INV(A))
   tic
   for i =1:ntrials
     srskelf_sv_nn(F,X);
@@ -152,28 +178,31 @@ rng(0);
                       @(x)(x - srskelf_sv_nc(F,ifmm_mv(G,x,@Afun,'c'))));
   fprintf('sv: %10.4e / %4d / %10.4e (s)\n',e,niter,t)
 
-  % generate field due to exterior sources
+  % To validate the whole discretization, we generate a field from some
+  % exterior sources and then solve for the field inside the sphere.
   m = 16;
   src = randn(3,m);
   src = 2*bsxfun(@rdivide,src,sqrt(sum(src.^2)));
   q = rand(m,1);
   B = Kfun(x,src,'s')*q;
 
-  % solve for surface density
+  % Solve for surface density
   X = srskelf_sv_nn(F,B);
 
-  % evaluate field at interior targets
+  % Evaluate field at interior targets
   trg = randn(3,m);
   trg = 0.5*bsxfun(@rdivide,trg,sqrt(sum(trg.^2)));
   Y = bsxfun(@times,Kfun(trg,x,'d',nu),area)*X;
 
-  % compare against exact field
+  % Compare against exact field
   Z = Kfun(trg,src,'s')*q;
   e = norm(Z - Y)/norm(Z);
   fprintf('pde: %10.4e\n',e)
 
-  % quadrature function
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % Functions used to generate entries of the matrix to be factorized
   function f = quadfun(x,y,trg)
+    % QUADFUN(X,Y,TRG)
     dx = trg(1) - x;
     dy = trg(2) - y;
     dz = trg(3);
@@ -181,8 +210,12 @@ rng(0);
     f = 1/(4*pi).*dz./dr.^3;
   end
 
-  % kernel function
   function K = Kfun(x,y,lp,nu)
+    % KFUN(X,Y,LP,NU) computes the Laplace potential evaluated
+    % pairwise between points in X and points in Y (does not handle the
+    % singularity).  If LP is 's' then a single-layer potential is
+    % computed, but if LP is 'd' then a double-layer potential is computed
+    % using the surface normal vectors in NU.
     if nargin < 4
       nu = [];
     end
@@ -200,8 +233,9 @@ rng(0);
     K(dr == 0) = 0;
   end
 
-  % matrix entries
   function A = Afun(i,j)
+    % AFUN(I,J) computes entries of the matrix A to be factorized at the
+    % index sets I and J.  This handles the near-field correction.
     if isempty(i) || isempty(j)
       A = zeros(length(i),length(j));
       return
@@ -216,6 +250,10 @@ rng(0);
 
   % proxy function
   function [Kpxy,nbr] = pxyfun(x,slf,nbr,l,ctr)
+    % PXYFUN(X,SLF,NBR,L,CTR) computes interactions between the points
+    % X(:,SLF) and the set of proxy points by scaling the proxy sphere to 
+    % appropriately contain a box at level L centered at CTR and then
+    % calling KFUN
     pxy = bsxfun(@plus,proxy*l,ctr');
     Kpxy = bsxfun(@times,Kfun(pxy,x(:,slf),'d',nu(:,slf)),area(slf));
     dx = x(1,nbr) - ctr(1);
@@ -225,8 +263,11 @@ rng(0);
     nbr = nbr(dist/l < 1.5);
   end
 
-  % proxy function for IFMM
   function [Kpxy,nbr] = pxyfun_ifmm(rc,rx,cx,slf,nbr,l,ctr)
+    % PXYFUN(RC,RX,CX,SLF,NBR,L,CTR) is analogous to PXYFUN but is used for
+    % the interpolative fast multipole method.  RC is either 'r' or 'c' to
+    % select whether we are proxying row or column interactions, and rx and
+    % cx contain the corresponding points for rows and columns.
     pxy = bsxfun(@plus,proxy*l,ctr');
     if strcmpi(rc,'r')
       Kpxy = Kfun(rx(:,slf),pxy,'s')*(4*pi/N);
@@ -241,8 +282,10 @@ rng(0);
     nbr = nbr(dist/l < 1.5);
   end
 
-  % sparse matrix access
   function A = spget(I_,J_)
+    % SPGET(I_,J_) computes entries of a sparse matrix of near-field
+    % corrections that should be added to the kernel matrix, as used in
+    % AFUN.
     m_ = length(I_);
     n_ = length(J_);
     [I_sort,E] = sort(I_);
