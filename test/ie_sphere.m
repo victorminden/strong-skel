@@ -25,7 +25,7 @@ function ie_sphere(n,nquad,occ,p,rank_or_tol,store,method)
 %                 'srskelf' (standard) or 'srskelf_hybrid' (alternating 
 %                 strong and weak skeletonization).
 
-  % Set sane default parameters
+  % Set default parameters to sane values
   if nargin < 1 || isempty(n)
     n = 20480;
   end
