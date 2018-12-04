@@ -1,4 +1,3 @@
-
 function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
 % SRSKELF   Strong recursive skeletonization factorization (symmetric 
 %           positive definite).
