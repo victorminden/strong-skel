@@ -3,7 +3,7 @@ function ie_square(n,occ,p,rank_or_tol,method)
 %  first-kind integral equation (Laplace single-layer potential) on the 
 %  unit square.  Sane defaults are provided for all parameters.
 %
-%  IE_SQUARE(N,OCC,P,RANK_OR_TOL,SKIP,METHOD) runs the example on a regular
+%  IE_SQUARE(N,OCC,P,RANK_OR_TOL,METHOD) runs the example on a regular
 %  N-by-N grid with the other parameters defined as follows:
 %  - OCC:         The occupancy parameter, specifying the maximum number of 
 %                 points a node in the quadtree can contain before it is

@@ -1,6 +1,6 @@
 function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
 % SRSKELF   Strong recursive skeletonization factorization (symmetric 
-%           positive definite).
+%           positive definite only).
 %
 %    F = SRSKELF(A,X,OCC,RANK_OR_TOL,PXYFUN) produces a factorization F of 
 %    the interaction matrix A on the points X using tree occupancy 

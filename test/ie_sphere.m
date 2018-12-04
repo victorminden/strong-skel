@@ -3,7 +3,7 @@ function ie_sphere(n,nquad,occ,p,rank_or_tol,store,method)
 %  second-kind integral equation (Laplace double-layer potential) on the 
 %  unit sphere.  Sane defaults are provided for all parameters.
 %
-%  IE_SPHERE(N,NQUAD,OCC,P,RANK_OR_TOL,SKIP,METHOD) runs the example on a 
+%  IE_SPHERE(N,NQUAD,OCC,P,RANK_OR_TOL,METHOD) runs the example on a 
 %  sphere discretized using N points (see code), where the near-field 
 %  entries of the discretization are corrected with a Gauss-Legendre 
 %  quadrature using NQUAD points in each direction and the other parameters
