@@ -192,7 +192,6 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
     
       t.nodes(i).xi = slf(sk);
       rem(slf(rd)) = 0;
-
     end % for
     F.lvp(nlvl+1) = n;
     
