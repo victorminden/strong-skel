@@ -66,9 +66,11 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
   tic
   t = shypoct(x,occ,opts.lvlmax,opts.ext);
 
-  % Print summary information
-  % TODO(victorminden): include header row
   if opts.verb
+    fprintf(['-'*ones(1,80) '\n'])
+    fprintf('%3s | %6s | %8s | %8s | %8s | %8s | %10s (s)\n', ...
+              'lvl','nblk','nRemIn','nRemOut','inRatio','outRatio','time')
+    % Print summary information about tree construction
     fprintf(['-'*ones(1,80) '\n'])
     fprintf('%3s | %63.2e (s)\n','-',toc)
 
@@ -88,7 +90,16 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
   nbox = t.lvp(end);
 
   e = cell(nbox,1);
-  % TODO(victorminden): document the various things that show up here
+  % Each element of F.factors will contian the following data for one box:
+  %   - sk: the skeleton DOF indices
+  %   - rd: the redundant DOF indices
+  %   - nbr: the neighbor (near-field) DOF indices
+  %   - T: the interpolation matrix mapping redundant to skeleton
+  %   - E: the left factor of the (symmmetric) Schur complement update to 
+  %        sk
+  %   - L: the Cholesky factor of the diagonal block
+  %   - C: the left factor of the (symmetric) Schur complement update to
+  %         nbr
   F = struct('sk',e,'rd',e,'nbr',e,'T',e,'E',e,'L',e,'C',e);
   F = struct('N',N,'nlvl',t.nlvl,'lvp',zeros(1,t.nlvl+1),'factors',F, ...
              'symm','p','skip',opts.skip);
@@ -185,7 +196,7 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       if t.nlvl-lvl >= opts.skip
         C = K2(:,rd)/L';
       else
-          C = zeros(0,length(rd));
+        C = zeros(0,length(rd));
       end % if
 
  
@@ -196,7 +207,7 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       if t.nlvl-lvl >= opts.skip || lvl == 2
         F.factors(n).nbr = nbr;
       else
-          F.factors(n).nbr = [];
+        F.factors(n).nbr = [];
       end % if
       F.factors(n).T = T;
       F.factors(n).E = E;
