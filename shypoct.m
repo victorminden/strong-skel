@@ -1,3 +1,4 @@
+function T = shypoct(x,occ,lvlmax,ext)
 % SHYPOCT   Build hyperoctree.
 %
 %    T = SHYPOCT(X,OCC) builds a hyperoctree T over a set of points X such that
@@ -42,9 +43,8 @@
 %      H. Samet. The quadtree and related hierarchical data structures. ACM
 %        Comput. Surv. 16 (2): 187-260, 1984.
 
-function T = shypoct(x,occ,lvlmax,ext)
 
-  % set default parameters
+  % Set sane default parameters
   if nargin < 3 || isempty(lvlmax)
     lvlmax = Inf;
   end
@@ -52,44 +52,48 @@ function T = shypoct(x,occ,lvlmax,ext)
     ext = [];
   end
 
-  % check inputs
+  % Check that inputs arae sensible
   assert(occ >= 0,'RSS:shypoct:negativeOcc', ...
          'Leaf occupancy must be nonnegative.')
   assert(lvlmax >= 1,'RSS:shypoct:invalidLvlmax', ...
          'Maximum tree depth must be at least 1.')
 
-  % initialize
+  % Initialize top-level box extent, side lengths, center.
   [d,n] = size(x);
   if isempty(ext)
     ext = [min(x,[],2) max(x,[],2)];
   end
   l = max(ext(:,2) - ext(:,1));
   ctr = 0.5*(ext(:,1) + ext(:,2));
-  s = struct('ctr',ctr','xi',1:n,'prnt',[],'chld',[],'nbor',[], 'ilist',[],'snbor',[]);
+  s = struct('ctr',ctr','xi',1:n,'prnt',[],'chld',[],'nbor',[], ...
+             'ilist',[],'snbor',[]);
   T = struct('nlvl',1,'lvp',[0 1],'lrt',l,'nodes',s);
   nlvl = 1;
   nbox = 1;
   mlvl = 1;
   mbox = 1;
 
-  % loop over all boxes in the tree
+  % Loop until all boxes are sufficiently subdivided (natural termination)
   while 1
-    % terminate if at maximum depth
+    % Terminate if at maximum depth (unnatural termination)
     if nlvl >= lvlmax
       break
     end
 
-    % initialize level
+    % Initialize the current level, which has side lengths diminished by a
+    % factor of two
     nbox_ = nbox;
     l = 0.5*l;
 
-    % loop over all boxes at current level
+    % Loop over all boxes at current level
     for prnt = T.lvp(nlvl)+1:T.lvp(nlvl+1)
       xi = T.nodes(prnt).xi;
       xn = length(xi);
 
-      % subdivide box if it contains too many points
+      % Subdivide this box if it contains too many points
       if xn > occ
+        % Complicated way of finding the assignments of this box's points
+        % to its child boxes
         ctr = T.nodes(prnt).ctr;
         idx = bsxfun(@gt,x(:,xi),ctr');
         idx = 2.^((1:d) - 1)*idx + 1;
@@ -97,7 +101,8 @@ function T = shypoct(x,occ,lvlmax,ext)
           nbox = nbox + 1;
           while mbox < nbox
             e = cell(mbox,1);
-            s = struct('ctr',e,'xi',e,'prnt',e,'chld',e,'nbor',e,'ilist',e,'snbor',e);
+            s = struct('ctr',e,'xi',e,'prnt',e,'chld',e,'nbor',e, ...
+                       'ilist',e,'snbor',e);
             T.nodes = [T.nodes; s];
             mbox = 2*mbox;
           end
@@ -115,7 +120,8 @@ function T = shypoct(x,occ,lvlmax,ext)
       end
     end
 
-    % terminate if no new boxes added; update otherwise
+    % If no boxes were subdivided into new boxes, terminate, otherwise 
+    % update for the next iteration
     if nbox <= nbox_
       break
     else
@@ -129,11 +135,15 @@ function T = shypoct(x,occ,lvlmax,ext)
     end
   end
 
-  % memory cleanup
+  % Memory cleanup, if we made arrays too big
   T.lvp = T.lvp(1:nlvl+1);
   T.nodes = T.nodes(1:nbox);
 
-  % initialize data for neighbor calculation
+  
+  % Next, we have to compute adjacency, neighbor, interaction list info for
+  % each box.
+  
+  % Initialize data for neighbor calculation
   ilvl = zeros(nbox,1);
   llvl = zeros(nlvl,1);
   l = T.lrt;
@@ -143,21 +153,22 @@ function T = shypoct(x,occ,lvlmax,ext)
     l = 0.5*l;
   end
 
-  % find neighbors and interaction list of each box
+  % Find neighbors and interaction list of each box
   for lvl = 2:nlvl
     l = llvl(lvl);
     for i = T.lvp(lvl)+1:T.lvp(lvl+1)
       ictr = T.nodes(i).ctr;
       prnt = T.nodes(i).prnt;
 
-      % add all non-self children of parent
+      % Add all non-self children of parent
       j = T.nodes(prnt).chld;
       T.nodes(i).nbor = j(j ~= i);
       for k = j(j~=i)
           T.nodes(k).snbor = [T.nodes(k).snbor i];
       end
 
-      % add coarser parent-neighbors if adjacent
+      % Add coarser parent-neighbors if adjacent (non-uniform
+      % discretization only)
       for j = T.nodes(prnt).nbor
         if ~isempty(T.nodes(j).xi)
           jctr = T.nodes(j).ctr;
@@ -172,7 +183,7 @@ function T = shypoct(x,occ,lvlmax,ext)
         end
       end
 
-      % add children of parent-neighbors if adjacent
+      % Add children of parent-neighbors if adjacent
       idx = [T.nodes(T.nodes(prnt).nbor).chld];
       c = reshape([T.nodes(idx).ctr],d,[])';
       dist = round(abs(bsxfun(@minus,T.nodes(i).ctr,c))/l);
@@ -184,7 +195,7 @@ function T = shypoct(x,occ,lvlmax,ext)
         end
       end
       
-      % add non-adjacent parent-neighbors-children to interaction list
+      % Add non-adjacent parent-neighbors-children to interaction list
       j = idx(max(dist,[],2) > 1 & max(dist,[],2) <2.5);
       if ~isempty(j)
         T.nodes(i).ilist = [T.nodes(i).ilist j];

@@ -7,7 +7,7 @@ Contributors:
 Victor Minden, Ken L. Ho, Anil Damle, Lexing Ying
 
 ## Details
-Built on the [FLAM library](https://github.com/klho/FLAM/) by Ken L. Ho, this research code implements the factorizations described in "A recursive skeletonization factorization based on strong admissibility" by Minden et al., available at [arXiv:1609.08130](https://arxiv.org/abs/1609.08130).
+Built on the [FLAM library](https://github.com/klho/FLAM/) by Ken L. Ho, this research code implements the factorizations described in "A recursive skeletonization factorization based on strong admissibility" by Minden et al.
 
 The main functions provided are as follows:
 - srskelf.m: the strong recursive skeletonization factorization (aka "RS-S") for symmetric matrices.  This function uses Cholesky factorizations of diagonal subblocks that can be assumed positive-definite in exact arithmetic.
