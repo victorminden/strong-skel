@@ -86,7 +86,7 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
   nbox = t.lvp(end);
 
   e = cell(nbox,1);
-  % Each element of F.factors will contian the following data for one box:
+  % Each element of F.factors will contain the following data for one box:
   %   - sk: the skeleton DOF indices
   %   - rd: the redundant DOF indices
   %   - nbr: the neighbor (near-field) DOF indices
@@ -157,6 +157,7 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
         end % if
 
         nlst = length(lst);
+        % Sorting not necessary, but makes debugging easier
         lst = sort(lst);
 
         % Compute interaction matrix between box and far-field (pass==2) or
@@ -232,7 +233,7 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
     end % for
   end % for
 
-  % Truncate extra storage, and we are done.
+  % Truncate extra storage, and we are done
   F.factors = F.factors(1:n);
   if opts.verb
     fprintf(['-'*ones(1,80) '\n'])
@@ -287,7 +288,7 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
 
       if strcmpi(Ityp,Jtyp)
         % If this is a diagonal block, then it is symmetric and has same
-        % factors on each side.
+        % factors on each side
         idxI = ismembc2(xj,I_);
         tmp1 = idxI~=0;
         subI = idxI(tmp1);
@@ -296,7 +297,7 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
         tmp1 = [g.E(idxI1,:); g.C(idxI2,:)];
         A(subI, subI) = A(subI,subI) - tmp1*tmp1';
       else
-        % Need different row and column factors.
+        % Need different row and column factors
         idxI = ismembc2(xj,I_);
         idxJ = ismembc2(xj,J_);
         
