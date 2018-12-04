@@ -1,4 +1,4 @@
-function ie_cube(n,occ,p,rank_or_tol,skip,method)
+function ie_cube(n,occ,p,rank_or_tol,method)
 % IE_CUBE  An example usage of strong skeletonization, solving a
 %  first-kind integral equation (Laplace single-layer potential) on the 
 %  unit cube.  Sane defaults are provided for all parameters.
@@ -15,10 +15,6 @@ function ie_cube(n,occ,p,rank_or_tol,skip,method)
 %                 select during a single box of skeletonization.  If a
 %                 float between 0 and 1, an approximate relative tolerance
 %                 used to automatically select the number of skeletons.
-%  - SKIP:        The number of initial levels of the factorization where 
-%                 skeletonization should be skipped (for efficiency).  This
-%                 parameter is not necessary in this case as it essentially 
-%                 corresponds to choosing a different occupancy parameter.
 %  - METHOD:      The type of strong skeletonization to use.  Options are
 %                 'srskelf' (standard) or 'srskelf_hybrid' (alternating 
 %                 strong and weak skeletonization).
@@ -36,10 +32,7 @@ function ie_cube(n,occ,p,rank_or_tol,skip,method)
   if nargin < 4 || isempty(rank_or_tol)
     rank_or_tol = 1e-3;
   end
-  if nargin < 5 || isempty(skip)
-    skip = 0;
-  end
-  if nargin < 6 || isempty(method)
+  if nargin < 5 || isempty(method)
     method = 'srskelf';
   end
   
@@ -60,7 +53,7 @@ function ie_cube(n,occ,p,rank_or_tol,skip,method)
   warning('on','MATLAB:quad:MinStepSize');
 
   % Factor the matrix using skeletonization (verbose mode)
-  opts = struct('verb',1,'skip',skip);
+  opts = struct('verb',1);
   
   if strcmp(method,'srskelf')
     F = srskelf(@Afun,x,occ,rank_or_tol,@pxyfun,opts);

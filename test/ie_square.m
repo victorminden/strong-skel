@@ -1,4 +1,4 @@
-function ie_square(n,occ,p,rank_or_tol,skip,method)
+function ie_square(n,occ,p,rank_or_tol,method)
 % IE_SQUARE  An example usage of strong skeletonization, solving a
 %  first-kind integral equation (Laplace single-layer potential) on the 
 %  unit square.  Sane defaults are provided for all parameters.
@@ -15,10 +15,6 @@ function ie_square(n,occ,p,rank_or_tol,skip,method)
 %                 select during a single box of skeletonization.  If a
 %                 float between 0 and 1, an approximate relative tolerance
 %                 used to automatically select the number of skeletons.
-%  - SKIP:        The number of initial levels of the factorization where 
-%                 skeletonization should be skipped (for efficiency).  This
-%                 parameter is not necessary in this case as it essentially 
-%                 corresponds to choosing a different occupancy parameter.
 %  - METHOD:      The type of strong skeletonization to use.  Options are
 %                 'srskelf' (standard) or 'srskelf_hybrid' (alternating 
 %                 strong and weak skeletonization).
@@ -36,10 +32,7 @@ function ie_square(n,occ,p,rank_or_tol,skip,method)
   if nargin < 4 || isempty(rank_or_tol)
     rank_or_tol = 1e-6;
   end
-  if nargin < 5 || isempty(skip)
-    skip = 0;
-  end
-  if nargin < 6 || isempty(method)
+  if nargin < 5 || isempty(method)
     method = 'srskelf';
   end
 
@@ -56,7 +49,7 @@ function ie_square(n,occ,p,rank_or_tol,skip,method)
   intgrl = 4*dblquad(@(x,y)(-1/(2*pi)*log(sqrt(x.^2 + y.^2))),0,h/2,0,h/2);
   
   % Factor the matrix using skeletonization (verbose mode)
-  opts = struct('verb',1,'skip',skip);
+  opts = struct('verb',1);
   
   if strcmp(method,'srskelf')
     F = srskelf(@Afun,x,occ,rank_or_tol,@pxyfun,opts);

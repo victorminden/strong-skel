@@ -42,9 +42,6 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
   if nargin < 6
     opts = [];
   end % if
-  if ~isfield(opts,'skip')
-    opts.skip = 0;
-  end % if
   if ~isfield(opts,'ext')
     opts.ext = [];
   end % if
@@ -55,7 +52,6 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
     opts.verb = 0;
   end % if
 
-  
   if opts.verb
       disp('This is standard symmetric positive definite srskelf (RS-S).');
       disp('Diagonal blocks will be factorized with Cholesky.');
@@ -101,8 +97,7 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
   %   - C: the left factor of the (symmetric) Schur complement update to
   %         nbr
   F = struct('sk',e,'rd',e,'nbr',e,'T',e,'E',e,'L',e,'C',e);
-  F = struct('N',N,'nlvl',t.nlvl,'lvp',zeros(1,t.nlvl+1),'factors',F, ...
-             'symm','p','skip',opts.skip);
+  F = struct('N',N,'nlvl',t.nlvl,'lvp',zeros(1,t.nlvl+1),'factors',F);
   nlvl = 0;
   n = 0;
   % Mark every DOF as "remaining", i.e., not yet eliminated.
@@ -133,14 +128,11 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       % Sorting not necessary, but makes debugging easier
       nbr = sort(nbr);
 
-      % TODO(victorminden): what do we want to do with the skip parameter?
-      % We can optionally choose to skip levels of skeletonization in which
-      % case we can use some dummy values.  If we are at the second level
-      % (i.e., the first level we reach in a bottom-to-top loop in which do
-      % not exist pairs of non-adjacent boxes) then we can do weak
-      % skeletonization, so instead of the interaction list we skeletonize 
-      % against the neighbor set.
-      if t.nlvl-lvl < opts.skip || lvl == 2
+      % If we are at the second level (i.e., the first level we reach in a 
+      % bottom-to-top loop in which there do not exist pairs of 
+      % non-adjacent boxes) then we can do weak skeletonization, so instead 
+      % of the interaction list we skeletonize against the neighbor set.
+      if lvl == 2
         lst = nbr;
         l = t.lrt/2^(lvl - 1);
       else
@@ -151,20 +143,14 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       % Compute proxy interactions and subselect neighbors
       Kpxy = zeros(0,nslf);
       if lvl > 2
-        if isempty(pxyfun)
-          assert(0);
-          lst = setdiff(find(rem),slf);
-        else
-          [Kpxy,lst] = pxyfun(x,slf,lst,l,t.nodes(i).ctr);
-        end % if
+        [Kpxy,lst] = pxyfun(x,slf,lst,l,t.nodes(i).ctr);
       end % if
 
       nlst = length(lst);
       lst = sort(lst);
-      
 
       % Compute interaction matrix between box and far-field (except level
-      % 2).
+      % 2, where near-field is included).
       K1 = full(A(lst,slf));
       K2 = spget('lst','slf');
 
@@ -180,35 +166,24 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       % Otherwise, compute the diagonal and off-diagonal blocks for this 
       % box
       K  = full(A(slf,slf)) + spget('slf','slf');
-      if t.nlvl-lvl >= opts.skip
-        K2 = full(A(nbr,slf)) + spget('nbr','slf');
-      end % if
+      K2 = full(A(nbr,slf)) + spget('nbr','slf');
+
       % Skeletonize
       K(rd,:) =  K(rd,:) - T'*K(sk,:);
       K(:,rd) = K(:,rd) - K(:,sk)*T;
-      if t.nlvl-lvl >= opts.skip
-        K2(:,rd) = K2(:,rd) - K2(:,sk)*T; 
-      end % if
+      K2(:,rd) = K2(:,rd) - K2(:,sk)*T; 
       % Cholesky factor of diagonal block
       L = chol(K(rd,rd),'lower');
       % Throw Cholesky onto intermediate factors
       E = K(sk,rd)/L';
-      if t.nlvl-lvl >= opts.skip
-        C = K2(:,rd)/L';
-      else
-        C = zeros(0,length(rd));
-      end % if
+      C = K2(:,rd)/L';
 
  
       % Store matrix factors for this box
       n = n + 1;
       F.factors(n).sk  = slf(sk);
       F.factors(n).rd  = slf(rd);
-      if t.nlvl-lvl >= opts.skip || lvl == 2
-        F.factors(n).nbr = nbr;
-      else
-        F.factors(n).nbr = [];
-      end % if
+      F.factors(n).nbr = nbr;
       F.factors(n).T = T;
       F.factors(n).E = E;
       F.factors(n).L = L;
