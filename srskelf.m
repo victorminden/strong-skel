@@ -251,7 +251,6 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
     % Translate boxes (indexed relative to tree) to factors (indexed
     % relative to factorization)
     update_list = lookup_list(flip(find(update_list)'));
-    % TODO(victorminden): why was this necessary?
     update_list = update_list(update_list~=0)';
         
     for jj = update_list
@@ -260,7 +259,8 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       f = length(g.sk);
             
       if strcmpi(Ityp,Jtyp)
-        % If this is a diagonal block, TODO(victorminden)
+        % If this is a diagonal block, then it is symmetric and has same
+        % factors on each side.
         idxI = ismembc2(xj,I_);
         tmp1 = idxI~=0;
         subI = idxI(tmp1);
@@ -269,6 +269,7 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
         tmp1 = [g.E(idxI1,:); g.C(idxI2,:)];
         A(subI, subI) = A(subI,subI) - tmp1*tmp1';
       else
+        % Need different row and column factors.
         idxI = ismembc2(xj,I_);
         idxJ = ismembc2(xj,J_);
 
