@@ -114,14 +114,14 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
     % We factorize both half-integer levels for every level lower than 2 
     % except the first level otherwise we just have weak skeletonization
     if lvl <= 2
-        ub = 1;
+      ub = 1;
     else
-        ub = 2;
+      ub = 2;
     end % if
     if lvl == t.nlvl
-        lb = 2;
+      lb = 2;
     else
-        lb = 1;
+      lb = 1;
     end % if
     % Loop over half-integer levels
     for pass = lb:ub
@@ -322,11 +322,11 @@ function F = srskelf_hybrid(A,x,occ,rank_or_tol,pxyfun,opts)
       % GET_UPDATE_LIST(NODE_IDX) Recursively get the list of all nodes in
       % the tree that could have generated Schur complement updates to
       % points in node NODE_IDX
-        update_list(node_idx) = 1;
-        update_list(t.nodes(node_idx).snbor) = 1;
-        for k = t.nodes(node_idx).chld
-          get_update_list(k);
-        end % for
+      update_list(node_idx) = 1;
+      update_list(t.nodes(node_idx).snbor) = 1;
+      for k = t.nodes(node_idx).chld
+        get_update_list(k);
+      end % for
     end % get_update_list
   end % spget
 end % srskelf_hybrif

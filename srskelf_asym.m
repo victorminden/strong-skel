@@ -66,7 +66,7 @@ function F = srskelf_asym(A,x,occ,rank_or_tol,pxyfun,opts)
   % Check inputs are sensible
     assert(strcmpi(opts.symm,'p') || strcmpi(opts.symm,'n'), ...
          'RSS:srskelf_asym:invalidSymm', ...
-         'Symmetry parameter must be ''P'' or ''N''.');
+         'Symmetry parameter must be ''p'' or ''n''.');
 
   % Build tree to hold the discretization points
   N = size(x,2);
@@ -97,7 +97,6 @@ function F = srskelf_asym(A,x,occ,rank_or_tol,pxyfun,opts)
   nbox = t.lvp(end);
   
   e = cell(nbox,1);
-  % TODO(victorminden): describe elements
   % Each element of F.factors will contain the following data for one box:
   %   - sk: the skeleton DOF indices
   %   - rd: the redundant DOF indices
@@ -340,11 +339,11 @@ function F = srskelf_asym(A,x,occ,rank_or_tol,pxyfun,opts)
       % GET_UPDATE_LIST(NODE_IDX) Recursively get the list of all nodes in
       % the tree that could have generated Schur complement updates to
       % points in node NODE_IDX
-        update_list(node_idx) = 1;
-        update_list(t.nodes(node_idx).snbor) = 1;
-        for k = t.nodes(node_idx).chld
-            get_update_list(k);
-        end % for
+      update_list(node_idx) = 1;
+      update_list(t.nodes(node_idx).snbor) = 1;
+      for k = t.nodes(node_idx).chld
+        get_update_list(k);
+      end % for
     end % get_update_list
   end % spget
 end % srskelf_asym
