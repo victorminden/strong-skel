@@ -133,6 +133,8 @@ function F = srskelf(A,x,occ,rank_or_tol,pxyfun,opts)
       % of the interaction list we skeletonize against the neighbor set.
       if lvl == 2
         lst = nbr;
+        nbr = [];
+        nnbr = 0;
         l = t.lrt/2^(lvl - 1);
       else
         lst = [t.nodes(t.nodes(i).ilist).xi];

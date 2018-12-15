@@ -154,6 +154,8 @@ start = tic;
 
         if pass == 1
           lst = nbr;
+          nbr = [];
+          nnbr = 0;
           l = t.lrt/2^(lvl - 1);
         else
           lst = [t.nodes(t.nodes(i).ilist).xi];
